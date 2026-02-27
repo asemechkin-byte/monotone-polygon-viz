@@ -47,7 +47,7 @@ class MonotoneEmbedder:
         self.all_edges = set() # All edges including internal
         self.boundary_edges = {(1, 2)} # Only the outer shell
 
-    def triangle(self, p_l, p_r, l, r):
+def triangle(self, p_l, p_r, l, r):
         common = set(self.adj.get(l, [])).intersection(set(self.adj.get(r, [])))
         v = next((c for c in sorted(list(common)) if c not in self.marked), None)
         
@@ -60,8 +60,10 @@ class MonotoneEmbedder:
             self.positions[v] = (mx, my)
             self.marked.add(v)
             
-            # Logic: (l, r) was a boundary edge, but now (l, v) and (v, r) replace it
-            self.boundary_edges.discard(tuple(sorted((l, r))))
+            # Update boundary edges
+            if tuple(sorted((l, r))) != (1, 2):
+                self.boundary_edges.discard(tuple(sorted((l, r))))
+            
             self.boundary_edges.add(tuple(sorted((l, v))))
             self.boundary_edges.add(tuple(sorted((v, r))))
             
