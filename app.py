@@ -89,17 +89,17 @@ with col1:
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
     
-    # Planar graphs look best with Kamada-Kawai or Planar layouts
-    # This minimizes edge crossings to show the triangulation clearly
-    try:
-        pos = nx.kamada_kawai_layout(G)
-    except:
-        pos = nx.spring_layout(G) # Fallback if geometry solver fails
+    # Check if the graph is planar and use the appropriate layout
+    if nx.is_planar(G):
+        pos = nx.planar_layout(G)
+    else:
+        # Fallback to a circular shell which often looks cleaner for polygons
+        pos = nx.shell_layout(G)
         
     nx.draw(G, pos, 
             with_labels=True, 
             node_color='#90ee90', 
-            edge_color='#bbbbbb', # Lighter edges make it look cleaner
+            edge_color='#bbbbbb', 
             node_size=800,
             font_size=10,
             font_weight='bold',
