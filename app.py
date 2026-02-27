@@ -44,15 +44,15 @@ class MonotoneEmbedder:
         self.adj = adj
         self.positions = {1: (0.0, 0.0), 2: (10.0, 0.0)}
         self.marked = {1, 2}
-        self.all_edges = set() # All edges including internal
-        self.boundary_edges = {(1, 2)} # Only the outer shell
+        self.all_edges = set()
+        self.boundary_edges = {(1, 2)}
 
-def triangle(self, p_l, p_r, l, r):
+    def triangle(self, p_l, p_r, l, r):
         common = set(self.adj.get(l, [])).intersection(set(self.adj.get(r, [])))
         v = next((c for c in sorted(list(common)) if c not in self.marked), None)
         
         if v is not None:
-            # Interpolation logic
+            # t-ratio and geometry
             t = 0.8 if v == 4 else (0.2 if v == 6 else random.uniform(0.3, 0.7))
             mx = p_l[0] + (p_r[0] - p_l[0]) * t
             my = max(p_l[1], p_r[1]) + 2.5
@@ -60,24 +60,26 @@ def triangle(self, p_l, p_r, l, r):
             self.positions[v] = (mx, my)
             self.marked.add(v)
             
-            # Update boundary edges
+            # Boundary Logic: Keep (1,2), replace others
             if tuple(sorted((l, r))) != (1, 2):
                 self.boundary_edges.discard(tuple(sorted((l, r))))
             
             self.boundary_edges.add(tuple(sorted((l, v))))
             self.boundary_edges.add(tuple(sorted((v, r))))
             
-            # Track all edges for the optional toggle
+            # Track internal lines for the toggle
             self.all_edges.add(tuple(sorted((l, v))))
             self.all_edges.add(tuple(sorted((v, r))))
             self.all_edges.add(tuple(sorted((l, r))))
 
+            # Recursive calls
             self.triangle(self.positions[l], (mx, my), l, v)
             self.triangle((mx, my), self.positions[r], v, r)
 
-# --- RUN ---
+# --- EXECUTION ---
 adj = generate_random_polygon_triangulation(num_v)
 embedder = MonotoneEmbedder(adj)
+# Ensure this call is outside the class definition
 embedder.triangle(embedder.positions[1], embedder.positions[2], 1, 2)
 
 col1, col2 = st.columns([1, 1], gap="large")
@@ -86,21 +88,22 @@ with col1:
     st.subheader("📍 Topological Blueprint")
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
-    nx.draw(G, nx.kamada_kawai_layout(G) if num_v < 10 else nx.spring_layout(G), 
-            with_labels=True, node_color='#90ee90', ax=ax1)
+    # Using spring_layout for broader compatibility
+    nx.draw(G, nx.spring_layout(G), with_labels=True, node_color='#90ee90', ax=ax1)
     st.pyplot(fig1)
 
 with col2:
     st.subheader("📐 Clean Polygon Boundary")
     fig2, ax2 = plt.subplots(figsize=(7, plot_height))
     
-    # Decide which edges to show based on the checkbox
     edges_to_draw = embedder.all_edges if show_triangulation else embedder.boundary_edges
     
     for edge in edges_to_draw:
         p1, p2 = embedder.positions[edge[0]], embedder.positions[edge[1]]
-        alpha = 1.0 if not show_triangulation or edge in embedder.boundary_edges else 0.2
-        ax2.plot([p1[0], p2[0]], [p1[1], p2[1]], color='black', linewidth=2, alpha=alpha)
+        # Boundary edges are bold, internal edges are faint
+        is_boundary = edge in embedder.boundary_edges
+        alpha_val = 1.0 if (not show_triangulation or is_boundary) else 0.2
+        ax2.plot([p1[0], p2[0]], [p1[1], p2[1]], color='black', linewidth=2, alpha=alpha_val)
     
     for node, pos in embedder.positions.items():
         ax2.scatter(pos[0], pos[1], color='#1f77b4', s=200, zorder=3)
