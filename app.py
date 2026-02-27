@@ -21,7 +21,7 @@ st.markdown("""
         margin-bottom: 3rem;
     }
     </style>
-    """, unsafe_content_type=True)
+    """, unsafe_allow_html=True) # <--- 'unsafe_allow_html' is the correct name
 
 st.title("🛡️ Monotone Polygon Visibility Embedding")
 st.write("Constructing planar monotone embeddings from random triangulations.")
