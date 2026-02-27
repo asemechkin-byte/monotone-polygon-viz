@@ -1,5 +1,4 @@
 import streamlit as st
-import math
 import matplotlib.pyplot as plt
 import networkx as nx
 import random
@@ -14,13 +13,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🛡️ Monotone Polygon Visibility Embedding")
+st.title("🛡️ Monotone Polygon Boundary Embedding")
 
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("Settings")
     num_v = st.slider("Number of Vertices", 6, 12, 8)
     plot_height = st.slider("Plot Height", 5, 12, 8)
+    show_triangulation = st.checkbox("Show Internal Triangulation", value=False)
     if st.button("🔄 Generate New Random Graph", use_container_width=True):
         st.rerun()
 
@@ -41,13 +41,13 @@ def generate_random_polygon_triangulation(n):
 # --- EMBEDDER ---
 class MonotoneEmbedder:
     def __init__(self, adj):
-        self.adj = adj  # We use this for logic
+        self.adj = adj
         self.positions = {1: (0.0, 0.0), 2: (10.0, 0.0)}
         self.marked = {1, 2}
-        self.draw_edges = {(1, 2)} # We use this only for drawing
+        self.all_edges = set() # All edges including internal
+        self.boundary_edges = {(1, 2)} # Only the outer shell
 
     def triangle(self, p_l, p_r, l, r):
-        # Look at the ORIGINAL graph for neighbors
         common = set(self.adj.get(l, [])).intersection(set(self.adj.get(r, [])))
         v = next((c for c in sorted(list(common)) if c not in self.marked), None)
         
@@ -60,11 +60,16 @@ class MonotoneEmbedder:
             self.positions[v] = (mx, my)
             self.marked.add(v)
             
-            # Add new edges to drawing set
-            self.draw_edges.add(tuple(sorted((l, v))))
-            self.draw_edges.add(tuple(sorted((v, r))))
+            # Logic: (l, r) was a boundary edge, but now (l, v) and (v, r) replace it
+            self.boundary_edges.discard(tuple(sorted((l, r))))
+            self.boundary_edges.add(tuple(sorted((l, v))))
+            self.boundary_edges.add(tuple(sorted((v, r))))
             
-            # Recurse into the two new triangles
+            # Track all edges for the optional toggle
+            self.all_edges.add(tuple(sorted((l, v))))
+            self.all_edges.add(tuple(sorted((v, r))))
+            self.all_edges.add(tuple(sorted((l, r))))
+
             self.triangle(self.positions[l], (mx, my), l, v)
             self.triangle((mx, my), self.positions[r], v, r)
 
@@ -79,19 +84,26 @@ with col1:
     st.subheader("📍 Topological Blueprint")
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
-    nx.draw(G, nx.spring_layout(G), with_labels=True, node_color='#90ee90', ax=ax1)
+    nx.draw(G, nx.kamada_kawai_layout(G) if num_v < 10 else nx.spring_layout(G), 
+            with_labels=True, node_color='#90ee90', ax=ax1)
     st.pyplot(fig1)
 
 with col2:
-    st.subheader("📐 Monotone Embedding")
+    st.subheader("📐 Clean Polygon Boundary")
     fig2, ax2 = plt.subplots(figsize=(7, plot_height))
-    # Draw all edges from the drawing set
-    for edge in embedder.draw_edges:
+    
+    # Decide which edges to show based on the checkbox
+    edges_to_draw = embedder.all_edges if show_triangulation else embedder.boundary_edges
+    
+    for edge in edges_to_draw:
         p1, p2 = embedder.positions[edge[0]], embedder.positions[edge[1]]
-        ax2.plot([p1[0], p2[0]], [p1[1], p2[1]], color='black', linewidth=2)
+        alpha = 1.0 if not show_triangulation or edge in embedder.boundary_edges else 0.2
+        ax2.plot([p1[0], p2[0]], [p1[1], p2[1]], color='black', linewidth=2, alpha=alpha)
+    
     for node, pos in embedder.positions.items():
         ax2.scatter(pos[0], pos[1], color='#1f77b4', s=200, zorder=3)
         ax2.text(pos[0]+0.3, pos[1], f"v{node}", fontweight='bold')
+        
     ax2.set_aspect('equal')
     ax2.axis('off')
     st.pyplot(fig2)
