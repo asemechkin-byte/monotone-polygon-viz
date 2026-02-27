@@ -89,44 +89,45 @@ with col1:
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
     
-    # 1. Find the boundary cycle (Hamiltonian cycle) for an outerplanar graph
-    # For our specific generator, the boundary edges are those in the final state
-    boundary_nodes = []
-    curr_edges = list(embedder.boundary_edges)
+    # 1. Walk the boundary to get the sequence
+    edge_map = {}
+    for u, v in embedder.boundary_edges:
+        edge_map.setdefault(u, []).append(v)
+        edge_map.setdefault(v, []).append(u)
     
-    # Simple traversal to order the nodes for the circular layout
-    if curr_edges:
-        edge_map = {}
-        for u, v in curr_edges:
-            edge_map.setdefault(u, []).append(v)
-            edge_map.setdefault(v, []).append(u)
-        
-        # Start at v1 and follow the path
-        curr = 1
-        visited = []
-        for _ in range(len(adj)):
-            visited.append(curr)
-            # Find next neighbor not already visited
-            next_nodes = [n for n in edge_map[curr] if n not in visited]
-            if not next_nodes: break
-            curr = next_nodes[0]
-        boundary_nodes = visited
-
-    # 2. Use the ordered boundary nodes to create a crossing-free layout
-    pos = nx.circular_layout(G, nodes=boundary_nodes)
-        
+    curr = 1
+    visited = []
+    # Safety break to prevent infinite loops
+    for _ in range(len(adj)):
+        visited.append(curr)
+        neighbors = edge_map.get(curr, [])
+        next_nodes = [n for n in neighbors if n not in visited]
+        if not next_nodes:
+            break
+        curr = next_nodes[0]
+    
+    # 2. Manually create circular positions in the order of the 'visited' walk
+    pos = {}
+    n_nodes = len(visited)
+    for i, node in enumerate(visited):
+        angle = 2 * math.pi * i / n_nodes
+        pos[node] = (math.cos(angle), math.sin(angle))
+    
+    # 3. Draw
     nx.draw(G, pos, 
             with_labels=True, 
             node_color='#90ee90', 
-            edge_color='#bbbbbb', 
+            edge_color='#dddddd', # Faint internal chords
             node_size=800,
-            font_size=10,
             font_weight='bold',
             ax=ax1)
     
-    # Highlight the boundary in the blueprint to show the polygon structure
-    nx.draw_networkx_edges(G, pos, edgelist=list(embedder.boundary_edges), 
-                           width=2, edge_color='black', ax=ax1)
+    # Draw boundary edges bold so it looks like a polygon
+    nx.draw_networkx_edges(G, pos, 
+                           edgelist=list(embedder.boundary_edges), 
+                           width=3, 
+                           edge_color='black', 
+                           ax=ax1)
     
     st.pyplot(fig1)
 with col2:
