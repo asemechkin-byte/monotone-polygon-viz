@@ -88,8 +88,22 @@ with col1:
     st.subheader("📍 Topological Blueprint")
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
-    # Using spring_layout for broader compatibility
-    nx.draw(G, nx.spring_layout(G), with_labels=True, node_color='#90ee90', ax=ax1)
+    
+    # Planar graphs look best with Kamada-Kawai or Planar layouts
+    # This minimizes edge crossings to show the triangulation clearly
+    try:
+        pos = nx.kamada_kawai_layout(G)
+    except:
+        pos = nx.spring_layout(G) # Fallback if geometry solver fails
+        
+    nx.draw(G, pos, 
+            with_labels=True, 
+            node_color='#90ee90', 
+            edge_color='#bbbbbb', # Lighter edges make it look cleaner
+            node_size=800,
+            font_size=10,
+            font_weight='bold',
+            ax=ax1)
     st.pyplot(fig1)
 
 with col2:
