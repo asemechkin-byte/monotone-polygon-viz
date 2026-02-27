@@ -18,8 +18,8 @@ st.title("🛡️ Monotone Polygon Boundary Embedding")
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("Settings")
-    num_v = st.slider("Number of Vertices", 6, 12, 8)
-    plot_height = st.slider("Plot Height", 5, 12, 8)
+    num_v = st.slider("Number of Vertices", 6, 30, 8)
+    plot_height = st.slider("Plot Height", 5, 30, 8)
     show_triangulation = st.checkbox("Show Internal Triangulation", value=False)
     if st.button("🔄 Generate New Random Graph", use_container_width=True):
         st.rerun()
@@ -55,7 +55,7 @@ class MonotoneEmbedder:
             # t-ratio and geometry
             t = 0.8 if v == 4 else (0.2 if v == 6 else random.uniform(0.3, 0.7))
             mx = p_l[0] + (p_r[0] - p_l[0]) * t
-            my = max(p_l[1], p_r[1]) + 2.5
+            my = max(p_l[1], p_r[1]) + 1.5
             
             self.positions[v] = (mx, my)
             self.marked.add(v)
