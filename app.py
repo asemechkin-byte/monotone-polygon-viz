@@ -89,9 +89,31 @@ with col1:
     fig1, ax1 = plt.subplots(figsize=(7, plot_height))
     G = nx.Graph(adj)
     
-    # This forces all nodes onto the boundary of a circle
-    # No nodes will ever be 'inside' the center.
-    pos = nx.circular_layout(G)
+    # 1. Find the boundary cycle (Hamiltonian cycle) for an outerplanar graph
+    # For our specific generator, the boundary edges are those in the final state
+    boundary_nodes = []
+    curr_edges = list(embedder.boundary_edges)
+    
+    # Simple traversal to order the nodes for the circular layout
+    if curr_edges:
+        edge_map = {}
+        for u, v in curr_edges:
+            edge_map.setdefault(u, []).append(v)
+            edge_map.setdefault(v, []).append(u)
+        
+        # Start at v1 and follow the path
+        curr = 1
+        visited = []
+        for _ in range(len(adj)):
+            visited.append(curr)
+            # Find next neighbor not already visited
+            next_nodes = [n for n in edge_map[curr] if n not in visited]
+            if not next_nodes: break
+            curr = next_nodes[0]
+        boundary_nodes = visited
+
+    # 2. Use the ordered boundary nodes to create a crossing-free layout
+    pos = nx.circular_layout(G, nodes=boundary_nodes)
         
     nx.draw(G, pos, 
             with_labels=True, 
@@ -101,8 +123,12 @@ with col1:
             font_size=10,
             font_weight='bold',
             ax=ax1)
+    
+    # Highlight the boundary in the blueprint to show the polygon structure
+    nx.draw_networkx_edges(G, pos, edgelist=list(embedder.boundary_edges), 
+                           width=2, edge_color='black', ax=ax1)
+    
     st.pyplot(fig1)
-
 with col2:
     st.subheader("📐 Clean Polygon Boundary")
     fig2, ax2 = plt.subplots(figsize=(7, plot_height))
