@@ -91,11 +91,15 @@ with col1:
         if not next_nodes: break
         curr = next_nodes[0]
     
-    # Manual Circular Layout
+   # Manual Circular Layout with organic jitter
     pos_circ = {}
     for i, node in enumerate(visited):
-        angle = 2 * math.pi * i / len(visited)
-        pos_circ[node] = (math.cos(angle), math.sin(angle))
+        # We add a tiny random offset to the angle and the radius
+        # This keeps nodes on the "outside" but makes it look less robotic
+        jitter_angle = random.uniform(-0.1, 0.1) 
+        jitter_radius = random.uniform(0.9, 1.1)
+        angle = (2 * math.pi * i / len(visited)) + jitter_angle
+        pos_circ[node] = (jitter_radius * math.cos(angle), jitter_radius * math.sin(angle))
     
     nx.draw(G, pos_circ, with_labels=True, node_color='#90ee90', 
             edge_color='#dddddd', node_size=800, font_weight='bold', ax=ax1)
