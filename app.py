@@ -60,21 +60,30 @@ class MonotoneEmbedder:
     def triangle(self, p_l, p_r, l, r):
         common = set(self.adj.get(l, [])).intersection(set(self.adj.get(r, [])))
         v = next((c for c in sorted(list(common)) if c not in self.marked), None)
-  if v is not None:
-            # ... (geometry logic here) ...
+def triangle(self, p_l, p_r, l, r):
+        common = set(self.adj.get(l, [])).intersection(set(self.adj.get(r, [])))
+        v = next((c for c in sorted(list(common)) if c not in self.marked), None)
+        
+        if v is not None:
+            # Interpolation logic
+            t = 0.8 if v == 4 else (0.2 if v == 6 else random.uniform(0.3, 0.7))
+            mx = p_l[0] + (p_r[0] - p_l[0]) * t
+            my = max(p_l[1], p_r[1]) + 2.5
             
-            # 1. Add the two new edges forming the sides of the triangle
+            self.positions[v] = (mx, my)
+            self.marked.add(v)
+            
+            # Add the two new triangle sides
             self.edges.add(tuple(sorted((l, v))))
             self.edges.add(tuple(sorted((v, r))))
             
-            # 2. REMOVE the base edge (l, r) so it doesn't clutter the interior
-            # We keep (1, 2) because it is the "floor" of our polygon
+            # Remove the base edge (except for the initial floor)
             if tuple(sorted((l, r))) != (1, 2):
                 self.edges.discard(tuple(sorted((l, r))))
 
-            # 3. Recurse
-            self.triangle(self.positions[l], m, l, v)
-            self.triangle(m, self.positions[r], v, r)
+            # Recursive calls
+            self.triangle(self.positions[l], (mx, my), l, v)
+            self.triangle((mx, my), self.positions[r], v, r)
 
 # --- EXECUTION ---
 adj = generate_random_polygon_triangulation(num_v)
